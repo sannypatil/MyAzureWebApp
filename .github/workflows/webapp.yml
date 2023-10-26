@@ -12,7 +12,7 @@ on:
 
 jobs:
   build-publish:
-    name: Build
+    name: Build and Publish
     runs-on: windows-latest
 
     steps:
@@ -50,7 +50,7 @@ jobs:
       - name: Deploy to Dev Azure Web App
         uses: azure/webapps-deploy@v2
         with:
-          app-name: 'myfirstgithubactionproject'
+          app-name: 'GitHubActionDev'
           publish-profile: ${{ secrets.DEV_PUBLISHPROFILE }}
           package: .
           
@@ -70,6 +70,6 @@ jobs:
       - name: Deploy to Test Azure Web App
         uses: azure/webapps-deploy@v2
         with:
-          app-name: 'mygithubactiontest'
+          app-name: 'GitHubActionTest'
           publish-profile: ${{ secrets.TEST_PUBLISHPROFILE }}
           package: .
