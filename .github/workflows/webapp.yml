@@ -1,0 +1,75 @@
+name: Azure Web App Deployment
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+     inputs:
+      production-approval:
+        description: 'Production Deployment Approval'
+        required: false
+
+jobs:
+  build-publish:
+    name: Build
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up .NET Core
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: '6.0.x'
+          include-prerelease: true
+
+      - name: Build with dotnet
+        run: dotnet build --configuration Release
+
+      - name: dotnet publish
+        run: dotnet publish -c Release -o ${{env.DOTNET_ROOT}}/development-app
+
+      - name: Upload artifact for deployment job
+        uses: actions/upload-artifact@v3
+        with:
+          name: development-app  # Match the name used here
+          path: ${{env.DOTNET_ROOT}}/development-app
+
+  deploy-to-dev:
+    name: Deploy to Dev
+    runs-on: windows-latest
+    needs: build-publish
+
+    steps:
+      - name: Download artifact from build job
+        uses: actions/download-artifact@v3
+        with:
+          name: development-app  # Match the name used here
+
+      - name: Deploy to Dev Azure Web App
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: 'myfirstgithubactionproject'
+          publish-profile: ${{ secrets.DEV_PUBLISHPROFILE }}
+          package: .
+          
+  deploy-to-test:
+    name: Deploy to Test
+    runs-on: windows-latest
+    needs: deploy-to-dev
+    environment:
+      name: "Test"
+      url: ${ { steps.deploy-to-webapp-prod.outputs.webapp-url } }
+    steps:
+      - name: Download artifact from build job
+        uses: actions/download-artifact@v3
+        with:
+          name: development-app  # Match the name used here
+
+      - name: Deploy to Test Azure Web App
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: 'mygithubactiontest'
+          publish-profile: ${{ secrets.TEST_PUBLISHPROFILE }}
+          package: .
